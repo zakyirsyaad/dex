@@ -21,7 +21,7 @@ export default function useGetAllowance() {
 
   React.useEffect(() => {
     refetchAllowance();
-  }, []);
+  }, [refetchAllowance]);
 
   const formattedUSDCAllowance = USDCAllowance
     ? formatUnits(USDCAllowance as bigint, 6)
@@ -30,5 +30,6 @@ export default function useGetAllowance() {
   return {
     USDCAllowance: formattedUSDCAllowance,
     isLoadingUSDC,
+    refetchAllowance,
   };
 }

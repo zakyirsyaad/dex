@@ -23,26 +23,11 @@ const USDC_DECIMALS = 6;
 const MAX_DECIMAL_PLACES = 6;
 const MIN_AMOUNT = 0.000001;
 
-interface FormError {
-  message: string;
-  code?: string;
-}
-
-type TransactionStatus =
-  | "idle"
-  | "approving"
-  | "depositing"
-  | "success"
-  | "error";
-
 export default function DepositForm() {
   const { address } = useAccount();
-  const { USDCAllowance, isLoadingUSDC } = useGetAllowance();
+  const { USDCAllowance, isLoadingUSDC, refetchAllowance } = useGetAllowance();
 
   const [amount, setAmount] = React.useState<string>("");
-  const [error, setError] = React.useState<FormError | null>(null);
-  const [transactionStatus, setTransactionStatus] =
-    React.useState<TransactionStatus>("idle");
   const [isApproved, setIsApproved] = React.useState<boolean>(false);
   const [isDeposited, setIsDeposited] = React.useState<boolean>(false);
 
@@ -50,16 +35,12 @@ export default function DepositForm() {
     writeContractAsync: writeContractAsyncApprove,
     data: hashApprove,
     isPending: isPendingApprove,
-    isError: isErrorApprove,
-    failureReason: failureReasonApprove,
   } = useWriteContract();
 
   const {
     writeContractAsync: writeContractAsyncDeposit,
     data: hashDeposit,
     isPending: isPendingDeposit,
-    isError: isErrorDeposit,
-    failureReason: failureReasonDeposit,
   } = useWriteContract();
 
   const { isLoading: isConfirmingApprove, isSuccess: isSuccessApprove } =
@@ -82,13 +63,9 @@ export default function DepositForm() {
 
   async function handleApprove() {
     try {
-      setTransactionStatus("approving");
-      setError(null);
-
       if (!validateAmount(amount)) {
         throw new Error("Invalid amount");
       }
-
       await writeContractAsyncApprove({
         address: UsdcContractAddress,
         abi: UsdcContractABI,
@@ -97,59 +74,11 @@ export default function DepositForm() {
       });
     } catch (err) {
       console.error(err);
-      setError({
-        message: "Approval failed. Please try again.",
-        code: "APPROVE_ERROR",
-      });
-      setTransactionStatus("error");
-      toast.error("Approval failed. Please try again.");
     }
   }
 
-  React.useEffect(() => {
-    if (isErrorApprove) {
-      setError({
-        message: String(failureReasonApprove),
-        code: "APPROVE_ERROR",
-      });
-      setTransactionStatus("error");
-      toast.error("Approval failed. Please try again.", {
-        description: String(failureReasonApprove),
-      });
-    }
-    if (isSuccessApprove) {
-      setTransactionStatus("success");
-      setIsApproved(true);
-      toast.success("Approval successful!");
-      handleDeposit();
-    }
-    if (isErrorDeposit) {
-      setError({
-        message: String(failureReasonDeposit),
-        code: "DEPOSIT_ERROR",
-      });
-      setTransactionStatus("error");
-      toast.error("Deposit failed. Please try again.", {
-        description: String(failureReasonDeposit),
-      });
-    }
-    if (isSuccessDeposit) {
-      setTransactionStatus("success");
-      setIsDeposited(true);
-      toast.success("Deposit successful!");
-    }
-  }, [
-    isSuccessApprove,
-    isErrorApprove,
-    failureReasonApprove,
-    isSuccessDeposit,
-    isErrorDeposit,
-    failureReasonDeposit,
-  ]);
-
   async function handleDeposit() {
     try {
-      setTransactionStatus("depositing");
       await writeContractAsyncDeposit({
         address: VaultContractAddress,
         abi: VaultContractABI,
@@ -158,43 +87,35 @@ export default function DepositForm() {
       });
     } catch (err) {
       console.error(err);
-      setError({
-        message: "Transaction failed. Please try again.",
-        code: "TRANSACTION_ERROR",
-      });
-      setTransactionStatus("error");
       toast.error("Transaction failed. Please try again.");
     }
   }
 
   async function handleConfirm() {
     try {
-      setError(null);
-
       if (!validateAmount(amount)) {
-        setError({
-          message: "Please enter a valid amount",
-          code: "INVALID_AMOUNT",
-        });
+        toast.error("Please enter a valid amount");
         return;
       }
-
       if (parseFloat(amount) > parseFloat(USDCAllowance)) {
-        await handleApprove();
-        return;
+        handleApprove();
       }
-
       await handleDeposit();
     } catch (err) {
       console.error(err);
-      setError({
-        message: "Transaction failed. Please try again.",
-        code: "TRANSACTION_ERROR",
-      });
-      setTransactionStatus("error");
       toast.error("Transaction failed. Please try again.");
     }
   }
+
+  React.useEffect(() => {
+    if (isSuccessApprove) {
+      setIsApproved(true);
+      refetchAllowance();
+    }
+    if (isSuccessDeposit) {
+      setIsDeposited(true);
+    }
+  }, [isSuccessApprove, isSuccessDeposit, refetchAllowance]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/,/g, "");
@@ -205,7 +126,6 @@ export default function DepositForm() {
         return;
       }
       setAmount(value);
-      setError(null);
     }
   };
 
@@ -220,22 +140,19 @@ export default function DepositForm() {
   };
 
   function getButtonText() {
-    switch (transactionStatus) {
-      case "approving":
-        return isConfirmingApprove
-          ? "Confirming approval..."
-          : "Waiting for approval...";
-      case "depositing":
-        return isConfirmingDeposit
-          ? "Confirming deposit..."
-          : "Waiting for deposit...";
-      case "success":
-        return "Transaction successful!";
-      case "error":
-        return "Transaction failed. Try again";
-      default:
-        return "Confirm Deposit";
+    if (isPendingApprove) {
+      return "Waiting for approval...";
     }
+    if (isConfirmingApprove) {
+      return "Confirming approval...";
+    }
+    if (isPendingDeposit) {
+      return "Waiting for deposit...";
+    }
+    if (isConfirmingDeposit) {
+      return "Confirming deposit...";
+    }
+    return "Confirm Deposit";
   }
 
   const isLoading =
@@ -271,12 +188,6 @@ export default function DepositForm() {
           </div>
           <TokenList />
         </div>
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error.message}</AlertDescription>
-          </Alert>
-        )}
       </div>
 
       {address ? (
@@ -305,7 +216,8 @@ export default function DepositForm() {
             Approval successful!
           </AlertTitle>
           <AlertDescription className="text-green-700">
-            You can now deposit USDC to the vault.
+            Your USDC has been approved for the vault. Refresh the page if no
+            changes are reflected in your balance.
           </AlertDescription>
         </Alert>
       )}
