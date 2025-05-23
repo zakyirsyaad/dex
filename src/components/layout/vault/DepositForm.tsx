@@ -98,7 +98,7 @@ export default function DepositForm() {
         return;
       }
       if (parseFloat(amount) > parseFloat(USDCAllowance)) {
-        handleApprove();
+        await handleApprove();
       }
       await handleDeposit();
     } catch (err) {
@@ -127,16 +127,6 @@ export default function DepositForm() {
       }
       setAmount(value);
     }
-  };
-
-  const formatDisplayAmount = (value: string): string => {
-    if (!value) return "";
-    const num = parseFloat(value);
-    if (isNaN(num)) return value;
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: MAX_DECIMAL_PLACES,
-    });
   };
 
   function getButtonText() {
@@ -171,7 +161,7 @@ export default function DepositForm() {
               type="text"
               className="text-3xl border-none outline-none w-full bg-transparent"
               placeholder="0.00"
-              value={formatDisplayAmount(amount)}
+              value={amount}
               onChange={handleAmountChange}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !isLoading) {
