@@ -18,15 +18,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVertical, Loader2 } from "lucide-react";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect, useSwitchChain } from "wagmi";
 import { ConnectButtonCustom } from "./ConnectButtonCustom";
 import useGetBalance from "@/hooks/getBalance";
+import { baseSepolia } from "viem/chains";
 
 export default function CardBalance() {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const { USDCBalance, isLoadingUSDC } = useGetBalance();
+  const { switchChain } = useSwitchChain();
 
+  React.useEffect(() => {
+    switchChain({ chainId: baseSepolia.id });
+  }, [switchChain]);
   return (
     <Card>
       <CardHeader>
