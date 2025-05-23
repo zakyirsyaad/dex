@@ -206,8 +206,8 @@ export default function DepositForm() {
             Approval successful!
           </AlertTitle>
           <AlertDescription className="text-green-700">
-            Your USDC has been approved for the vault. Refresh the page if no
-            changes are reflected in your balance.
+            Your USDC has been approved for the vault, then confirm the deposit
+            to deposit USDC to the vault.
           </AlertDescription>
         </Alert>
       )}
