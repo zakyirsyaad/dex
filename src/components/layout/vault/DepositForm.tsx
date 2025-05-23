@@ -14,7 +14,7 @@ import {
   VaultContractABI,
   VaultContractAddress,
 } from "@/contracts/VaultContract";
-import { parseUnits, formatUnits } from "viem";
+import { parseUnits } from "viem";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Check, Loader2 } from "lucide-react";
@@ -45,8 +45,6 @@ export default function DepositForm() {
     React.useState<TransactionStatus>("idle");
   const [isApproved, setIsApproved] = React.useState<boolean>(false);
   const [isDeposited, setIsDeposited] = React.useState<boolean>(false);
-  const [shouldAutoDeposit, setShouldAutoDeposit] =
-    React.useState<boolean>(false);
 
   const {
     writeContractAsync: writeContractAsyncApprove,
@@ -82,58 +80,10 @@ export default function DepositForm() {
     return true;
   };
 
-  React.useEffect(() => {
-    if (isErrorApprove) {
-      setError({
-        message: String(failureReasonApprove),
-        code: "APPROVE_ERROR",
-      });
-      setTransactionStatus("error");
-      setShouldAutoDeposit(false);
-      toast.error("Approval failed. Please try again.", {
-        description: String(failureReasonApprove),
-      });
-    }
-    if (isSuccessApprove) {
-      setTransactionStatus("success");
-      setIsApproved(true);
-      toast.success("Approval successful!");
-      if (shouldAutoDeposit) {
-        void handleDeposit();
-      }
-    }
-    if (isErrorDeposit) {
-      setError({
-        message: String(failureReasonDeposit),
-        code: "DEPOSIT_ERROR",
-      });
-      setTransactionStatus("error");
-      setShouldAutoDeposit(false);
-      toast.error("Deposit failed. Please try again.", {
-        description: String(failureReasonDeposit),
-      });
-    }
-    if (isSuccessDeposit) {
-      setTransactionStatus("success");
-      setIsDeposited(true);
-      setShouldAutoDeposit(false);
-      toast.success("Deposit successful!");
-    }
-  }, [
-    isSuccessApprove,
-    isErrorApprove,
-    failureReasonApprove,
-    isSuccessDeposit,
-    isErrorDeposit,
-    failureReasonDeposit,
-    shouldAutoDeposit,
-  ]);
-
   async function handleApprove() {
     try {
       setTransactionStatus("approving");
       setError(null);
-      setShouldAutoDeposit(true);
 
       if (!validateAmount(amount)) {
         throw new Error("Invalid amount");
@@ -152,15 +102,54 @@ export default function DepositForm() {
         code: "APPROVE_ERROR",
       });
       setTransactionStatus("error");
-      setShouldAutoDeposit(false);
       toast.error("Approval failed. Please try again.");
     }
   }
 
+  React.useEffect(() => {
+    if (isErrorApprove) {
+      setError({
+        message: String(failureReasonApprove),
+        code: "APPROVE_ERROR",
+      });
+      setTransactionStatus("error");
+      toast.error("Approval failed. Please try again.", {
+        description: String(failureReasonApprove),
+      });
+    }
+    if (isSuccessApprove) {
+      setTransactionStatus("success");
+      setIsApproved(true);
+      toast.success("Approval successful!");
+      handleDeposit();
+    }
+    if (isErrorDeposit) {
+      setError({
+        message: String(failureReasonDeposit),
+        code: "DEPOSIT_ERROR",
+      });
+      setTransactionStatus("error");
+      toast.error("Deposit failed. Please try again.", {
+        description: String(failureReasonDeposit),
+      });
+    }
+    if (isSuccessDeposit) {
+      setTransactionStatus("success");
+      setIsDeposited(true);
+      toast.success("Deposit successful!");
+    }
+  }, [
+    isSuccessApprove,
+    isErrorApprove,
+    failureReasonApprove,
+    isSuccessDeposit,
+    isErrorDeposit,
+    failureReasonDeposit,
+  ]);
+
   async function handleDeposit() {
     try {
       setTransactionStatus("depositing");
-      setShouldAutoDeposit(false);
       await writeContractAsyncDeposit({
         address: VaultContractAddress,
         abi: VaultContractABI,
@@ -174,7 +163,6 @@ export default function DepositForm() {
         code: "TRANSACTION_ERROR",
       });
       setTransactionStatus("error");
-      setShouldAutoDeposit(false);
       toast.error("Transaction failed. Please try again.");
     }
   }
@@ -241,6 +229,10 @@ export default function DepositForm() {
         return isConfirmingDeposit
           ? "Confirming deposit..."
           : "Waiting for deposit...";
+      case "success":
+        return "Transaction successful!";
+      case "error":
+        return "Transaction failed. Try again";
       default:
         return "Confirm Deposit";
     }
@@ -279,6 +271,12 @@ export default function DepositForm() {
           </div>
           <TokenList />
         </div>
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error.message}</AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {address ? (
