@@ -32,6 +32,7 @@ export default function CardBalance() {
   React.useEffect(() => {
     switchChain({ chainId: baseSepolia.id });
   }, [switchChain]);
+
   return (
     <Card>
       <CardHeader>
