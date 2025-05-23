@@ -7,7 +7,7 @@ export default function BalanceVault() {
   return (
     <div className="border rounded-md p-5 bg-secondary shadow">
       <h1 className="text-3xl font-semibold">
-        {isLoadingVault ? (
+        {!VaultBalance && isLoadingVault ? (
           <p className="flex items-center gap-2 text-4xl text-muted-foreground">
             <Loader2 className="animate-spin" /> loading...
           </p>
