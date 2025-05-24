@@ -176,7 +176,7 @@ export default function DepositForm() {
               </div>
             )}
           </div>
-          <TokenList />
+          <span className="font-semibold">USDC</span>
         </div>
       </div>
 

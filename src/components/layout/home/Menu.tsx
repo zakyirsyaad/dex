@@ -17,7 +17,12 @@ export default function Menu() {
         <Package className="size-5" />
         Vault
       </Link>
-      <Link href="/" className="border place-items-center rounded-md py-2">
+      <Link
+        href="/swap"
+        className={`border place-items-center rounded-md py-2 ${
+          pathname === "/swap" ? "bg-primary text-primary-foreground" : ""
+        }`}
+      >
         <ArrowDownUp className="size-5" />
         Swap
       </Link>
